@@ -13,3 +13,9 @@ cd APM
 conda env create -f env.yml
 conda activate apm
 ```
+
+**Training**
+-------------
+
+**Predicting**
+-------------
