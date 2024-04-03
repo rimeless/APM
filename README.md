@@ -11,4 +11,3 @@ A improved molecule representation method that captures both the physicochemical
 3. conda env create -f env.yml
 4. conda activate apm
 
-python evaluate_example.py --input_data_path paper_examples.txt
