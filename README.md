@@ -23,7 +23,7 @@ python generate_APM.py --input_type compound --file_type sdf
 **Training**
 -------------
 ```
-python train_model.py --cmp_path data/compount --pck_path data/pocket --labels data/interaction.csv --save_path model_weight
+python train_model.py --cmp_path data/compound --pck_path data/pocket --labels data/interaction.csv --save_path model_weight
 ```
 
 **Predicting**
