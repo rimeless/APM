@@ -14,13 +14,20 @@ conda env create -f env.yml
 conda activate apm
 ```
 
+**Genarate APM**
+-------------
+```
+python generate_APM.py --input_type compound --file_type sdf
+```
+
 **Training**
 -------------
 ```
-
+python train_model.py --cmp_path data/compount --pck_path data/pocket --labels data/interaction.csv --save_path model_weight
 ```
+
 **Predicting**
 -------------
 ```
-
+python main.py --cmp_path data/compound --pck_path data/pocket --model_name model_weight/ap_model.pth --result_path result
 ```
