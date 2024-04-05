@@ -1,28 +1,17 @@
-import os, sys, datetime, pickle
+import os, sys, datetime, pickle, math
 import pandas as pd
 import numpy as np
 import seaborn as sns
-
+import itertools
+from itertools import combinations_with_replacement, product
 from operator import itemgetter, add
 
 from rdkit import Chem
 from rdkit import RDConfig
 from rdkit.Chem import AllChem
 from rdkit.Chem import ChemicalFeatures
-
-import itertools
-from itertools import combinations_with_replacement, product
-import math, random, glob
-
 from sklearn import metrics
-from functools import reduce
-
-from sklearn.cluster import AgglomerativeClustering
-from collections import OrderedDict
 from scipy import stats
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib, matplotlib.pyplot as plt
-import matplotlib.animation as animation
 
 
 factory = ChemicalFeatures.BuildFeatureFactory('data/BaseFeatures_h.fdef')

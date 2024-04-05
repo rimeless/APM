@@ -78,6 +78,88 @@ class MultiHeadAttention(nn.Module):
         else:
             return o
 
+
+
+def fwd_pass(X, y, model_t, train=False):
+    if train:
+        optimizer.zero_grad()
+    out = []
+    for item in X:
+        x = [0, 0]
+        x[0] = item[0].to(device)
+        x[1] = item[1].to(device)
+        out.append(model_t(x))
+        del x
+    out = torch.stack(out, 0).view(-1, 1).to(device)
+    y = torch.Tensor(y).view(-1, 1).to(device)
+    loss = criterion(out, y)
+    matches = [torch.round(i) == torch.round(j) for i, j in zip(out, y)]
+    acc = matches.count(True) / len(matches)
+    if train:
+        loss.backward()
+        optimizer.step()
+    return acc, loss, out
+
+
+def get_roce(predList, targetList, roceRate):
+    p = sum(targetList)
+    n = len(targetList) - p
+    predList = [[index, x] for index, x in enumerate(predList)]
+    predList = sorted(predList, key=lambda x:x[1], reverse=True)
+    tp1 = 0
+    fp1 = 0
+    maxIndexs = []
+    for x in predList:
+        if(targetList[x[0]] == 1):
+            tp1 += 1
+        else:
+            fp1 += 1
+            if(fp1>((roceRate*n)/100)):
+                break
+    roce = (tp1*n)/(p*fp1)
+    return roce
+
+
+def test_func(model_f, y_label, X_test_f):
+    y_pred = []
+    y_label = torch.Tensor(y_label)
+    print("Testing:")
+    print("-------------------")
+    with tqdm(range(0, len(X_test_f), 1)) as tepoch:
+        for i in tepoch:
+            with torch.no_grad():
+                x = [0, 0]
+                x[0] = X_test_f[i][0].to(device)
+                x[1] = X_test_f[i][1].to(device)
+                y_pred.append(model_f(x).cpu())
+    y_pred = torch.cat(y_pred, dim=0)
+    y_pred_c = [round(i.item()) for i in y_pred]
+    auroc = str(roc_auc_score(y_label, y_pred))
+    print("AUROC: " + auroc, end=" ")
+    return auroc
+
+
+
+
+
+def setting_dataset(cmpdf, ptndf, label_df, tag, pockn, pair_typeN):
+    subsets = df[df.tag==tag]
+    apm = np.array(cmpdf.loc[subsets.cid,:])        
+    apm = torch.tensor(apm, dtype = torch.float).view(len(subsets),1,pair_typeN,10)
+    ppock = []
+    for pds in list(subsets.pdb_id):
+        pcks = ptndf.loc[pds,:]
+        if len(pcks)>(pockn-1):
+            pcks = pcks.sample(frac = 1, random_state = 7)[0:(pockn-1)]
+        ppock.append(torch.tensor(np.array(pcks).reshape([-1,pair_typeN,10]), dtype = torch.float))
+    X = [[apm[i], ppock[i]] for i in range(len(apm))]
+    y = list(subsets.label)
+    return X, y
+
+
+
+
+
 class CNN_model(nn.Module):
     def __init__(self, rn, pns, dropout, pockn):
         super(CNN_model, self).__init__()
@@ -130,11 +212,5 @@ class CNN_model(nn.Module):
         out = F.relu(self.fc_in(out.view(-1, out.size()[1]*out.size()[2])))
         out = torch.sigmoid(self.fc_out(out))
         return out
-
-
-model = CNN_model(55, 7, 0.3, 30)
-model.to(device)
-MODEL_NAME = 'ap1_lr0.001_dr0.3_30pock_7pns_False_final'
-model.load_state_dict(torch.load("model/{}.pth".format(MODEL_NAME), map_location=torch.device('cpu')))
 
 
