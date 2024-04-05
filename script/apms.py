@@ -25,7 +25,7 @@ import matplotlib, matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 
-factory = ChemicalFeatures.BuildFeatureFactory('BaseFeatures_h.fdef')
+factory = ChemicalFeatures.BuildFeatureFactory('data/BaseFeatures_h.fdef')
 fn = factory.GetFeatureFamilies() 
 
 
@@ -174,7 +174,7 @@ def gen_FP(mm):
   fps.index = mn
   return fps, smiles_list
 
-def gen_pockets(pdb_file, pk, rns, cnrs, inv, fn):
+def gen_pockets(pdb_file, pk, rns, cnrs, inv, fn, pockn):
     pockets = pk.find_pockets(pdb_file)
     # pocket df
     subcents = []
@@ -227,11 +227,11 @@ def gen_pockets(pdb_file, pk, rns, cnrs, inv, fn):
         subpock = pock.loc[pid, :]
         if len(subpock.shape)==1:
             nsubdf = pd.DataFrame(subpock).T
-        elif len(subpock)>29:
-            k_means = KMeans(init="k-means++", n_clusters=29, n_init=20)#, n_jobs = 50)
+        elif len(subpock)>pockn:
+            k_means = KMeans(init="k-means++", n_clusters=pockn, n_init=20)#, n_jobs = 50)
             k_means.fit(subpock)
             nsubs = []
-            for i in range(29):
+            for i in range(pockn):
                 iidx = [ii for ii, pp in enumerate(k_means.labels_) if pp == i]
                 ssub = subpock.iloc[iidx,:]
                 dsts = [np.linalg.norm(ssub.iloc[a,:].to_numpy()-k_means.cluster_centers_[0]) for a in range(len(ssub))]
@@ -242,3 +242,20 @@ def gen_pockets(pdb_file, pk, rns, cnrs, inv, fn):
         nsubss.append(nsubdf)
     pcks = pd.concat(nsubss)
     return pcks
+
+
+
+def generate_APM(input_type, input_path, dstbin, use_feats):
+  rto = 20/(1.2**dstbin)
+  cnrs = [rto*(1.2**g) for g in range(dstbin)]
+  feat_types = use_feats.split(',')
+  rn = int((len(feat_types) + 3)*(len(feat_types) +4)/2)
+  fns = [fn.index(f) for f in feat_types] + [9, 10, 11]
+  rns = [str(x)+str(y) for x,y in combinations_with_replacement(fns,2)]
+  if input_type=='compound':
+    mm = Chem.SDMolSupplier(input_path, removeHs=True) 
+    mm = [m for m in mm if m is not None]
+    apm = gen_AP(mm, feat_types, rns, cnrs, inv, fn)
+  else:
+    apm = gen_pockets(input_path, pk, rns, cnrs, inv, fn, pockn)  
+return apm

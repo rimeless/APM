@@ -7,7 +7,7 @@ if __name__ == '__main__':
     parser.add_argument('--input_path',type=str,
                         default='data/compounds.sdf')
     parser.add_argument('--out_path',type=str,
-                        default='result/res.pkl')
+                        default='data')
     parser.add_argument('--use_feats',type=str,
                         default='Donor,Acceptor,NegIonizable,PosIonizable,Halogen,Aromatic,Hydrophobe')
     parser.add_argument('--distbin',type=str,
@@ -18,4 +18,4 @@ if __name__ == '__main__':
 
 
 apmdf = generate_APM(args.input_type, args.input_path, args.dstbin, args.use_feats)
-apmdf.to_pickle(args.out_path)
+apmdf.to_csv(f'{args.out_path}/apm_{input_type}.csv')
