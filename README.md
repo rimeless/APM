@@ -19,17 +19,17 @@ conda activate apm
 To generate an Atom Pair Map (APM), input your 3D structure files (SDF or PDB) for the compound and protein, selecting the atom pair types and the number of distance bins. Configure these parameters to tailor the APM generation to your specific research needs.
 
 ```
-python script/generate_APM.py --input_type compound --input_file data/compound/compounds.sdf --out_path result/res.pkl --distbin 10
+python script/generate_APM.py --input_type compound --input_file data/compounds.sdf --out_path data --distbin 10
 ```
 
 **Training with new data**
 -------------
 ```
-python script/train.py --cmp_path data/compound --pck_path data/pocket --labels data/interaction.csv --save_path model_weight
+python script/train.py --cmp_apm_file data/apm_compound.csv --pck_apm_path data/apm_protein.csv --labels data/interactions.csv --checkpoint_path model_weight
 ```
 
 **Predicting with saved_checkpoint**
 -------------
 ```
-python script/main.py --cmp_path data/compound --pck_path data/pocket --model_name model_weight/ap_model.pth --result_path result
+python script/main.py --cmp_apm_file data/apm_compound.csv --pck_apm_path data/apm_protein.csv --checkpoint_file model_weight/ap_model.pth --result_file result/result.csv
 ```
