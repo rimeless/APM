@@ -17,17 +17,17 @@ conda activate apm
 **Genarate APM**
 -------------
 ```
-python generate_APM.py --input_type compound --file_type sdf
+python script/generate_APM.py --input_type compound --input_file data/compound/compounds.sdf --out_path result/res.pkl --distbin 10
 ```
 
-**Training**
+**Training with new data**
 -------------
 ```
-python train_model.py --cmp_path data/compound --pck_path data/pocket --labels data/interaction.csv --save_path model_weight
+python script/train.py --cmp_path data/compound --pck_path data/pocket --labels data/interaction.csv --save_path model_weight
 ```
 
-**Predicting**
+**Predicting with saved_checkpoint**
 -------------
 ```
-python main.py --cmp_path data/compound --pck_path data/pocket --model_name model_weight/ap_model.pth --result_path result
+python script/main.py --cmp_path data/compound --pck_path data/pocket --model_name model_weight/ap_model.pth --result_path result
 ```
