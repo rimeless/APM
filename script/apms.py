@@ -1,7 +1,6 @@
-import os, sys, datetime, pickle, math
+import os, sys, datetime, pickle, math, argparse
 import pandas as pd
 import numpy as np
-import seaborn as sns
 import itertools
 from itertools import combinations_with_replacement, product
 from operator import itemgetter, add
@@ -247,4 +246,4 @@ def generate_APM(input_type, input_path, dstbin, use_feats):
     apm = gen_AP(mm, feat_types, rns, cnrs, inv, fn)
   else:
     apm = gen_pockets(input_path, pk, rns, cnrs, inv, fn, pockn)  
-return apm
+  return apm
