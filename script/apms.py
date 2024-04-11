@@ -237,7 +237,7 @@ def gen_pockets(pdb_file, pk, rns, cnrs, inv, fn, pockn):
 
 
 
-def generate_APM(input_type, input_path, dstbin, use_feats):
+def generate_APM(input_type, input_path, dstbin, use_feats, pockn):
   rto = 20/(1.2**dstbin)
   cnrs = [rto*(1.2**g) for g in range(dstbin)]
   feat_types = use_feats.split(',')

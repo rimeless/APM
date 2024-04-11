@@ -17,5 +17,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
 
-apmdf = generate_APM(args.input_type, args.input_file, args.distbin, args.use_feats)
+apmdf = generate_APM(args.input_type, args.input_file, args.distbin, args.use_feats, args.pocketN)
 apmdf.to_csv(f'{args.out_path}/apm_{args.input_type}.csv')
