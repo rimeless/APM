@@ -33,5 +33,5 @@ python script/train.py --cmp_apm_file data/apm_compound.csv --pck_apm_path data/
 -------------
 Obtain prediction results as a CSV file detailing interactions between combination of given compounds and proteins.
 ```
-python script/main.py --cmp_apm_file data/apm_compound.csv --pck_apm_file data/apm_protein.csv --checkpoint_file model_weight/ap_model.pth --result_dir result/result.csv
+python script/main.py --cmp_apm_file data/apm_compound.csv --pck_apm_file data/apm_protein.csv --checkpoint_file model_weight/ap_model.pth --result_dir result
 ```
