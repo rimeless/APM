@@ -11,6 +11,10 @@ from rdkit.Chem import AllChem
 from rdkit.Chem import ChemicalFeatures
 from sklearn import metrics
 from scipy import stats
+import deepchem
+
+pk = deepchem.dock.ConvexHullPocketFinder()
+
 
 
 factory = ChemicalFeatures.BuildFeatureFactory('data/BaseFeatures_h.fdef')

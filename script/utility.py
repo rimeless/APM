@@ -24,10 +24,9 @@ from sklearn.metrics import balanced_accuracy_score, roc_auc_score, precision_re
 from torch.autograd import Variable
 from sklearn.preprocessing import StandardScaler
 std_scaler = StandardScaler()
-import deepchem
+
 import random
 random.seed(7)
-pk = deepchem.dock.ConvexHullPocketFinder()
 
 
 
@@ -212,5 +211,4 @@ class CNN_model(nn.Module):
         out = F.relu(self.fc_in(out.view(-1, out.size()[1]*out.size()[2])))
         out = torch.sigmoid(self.fc_out(out))
         return out
-
 
