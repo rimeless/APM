@@ -19,8 +19,8 @@ model = CNN_model(55, 7, 0.3, 30)
 model.to(device)
 model.load_state_dict(torch.load(args.checkpoint_file, map_location=torch.device('cpu')))
 
-cmp_apm = pd.read_csv(cmp_apm_file)
-pck_apm = pd.read_csv(pck_apm_file)
+cmp_apm = pd.read_csv(args.cmp_apm_file)
+pck_apm = pd.read_csv(args.pck_apm_file)
 
 apm = np.array(cmp_apm) 
 apm = torch.tensor(apm, dtype = torch.float).view(len(vdf),1,rn,10)
@@ -40,5 +40,5 @@ for idx, X_test in enumerate(X):
 
 probdf = pd.DataFrame(probs)
 probdf.columns = ['compound','probability']
-dti_table.to_csv(f'{result_file}/result.csv')
+dti_table.to_csv(f'{args.result_dir}/result.csv')
 
