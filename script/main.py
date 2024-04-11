@@ -17,15 +17,15 @@ if __name__ == '__main__':
 
 model = CNN_model(55, 7, 0.3, 30)
 model.to(device)
-model.load_state_dict(torch.load(args.checkpoint_file, map_location=torch.device('cpu')))
+model.load_state_dict(torch.load(args.checkpoint_file))
 
-cmp_apm = pd.read_csv(args.cmp_apm_file)
-pck_apm = pd.read_csv(args.pck_apm_file)
+cmp_apm = pd.read_csv(args.cmp_apm_file, index_col =0)
+pck_apm = pd.read_csv(args.pck_apm_file, index_col =0)
 
 apm = np.array(cmp_apm) 
-apm = torch.tensor(apm, dtype = torch.float).view(len(vdf),1,rn,10)
-ppock = torch.tensor(np.array(pck_apm, dtype = float).reshape([-1,rn,10]), dtype = torch.float)
-X = [[apm[i], ppock] for i in range(len(vdf))]
+apm = torch.tensor(apm, dtype = torch.float).view(len(apm),1,55,10)
+ppock = torch.tensor(np.array(pck_apm, dtype = float).reshape([-1,55,10]), dtype = torch.float)
+X = [[apm[i], ppock] for i in range(len(apm))]
 
 probs = []
 for idx, X_test in enumerate(X):
@@ -38,7 +38,8 @@ for idx, X_test in enumerate(X):
 
 
 
-probdf = pd.DataFrame(probs)
-probdf.columns = ['compound','probability']
+dti_table = pd.DataFrame(probs)
+dti_table.columns = ['compound','probability']
+dti_table.compound = list(cmp_apm.index)
 dti_table.to_csv(f'{args.result_dir}/result.csv')
 

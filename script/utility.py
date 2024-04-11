@@ -3,7 +3,7 @@ import torch, sys, os
 os.environ["CUDA_LAUNCH_BLOCKING"]="1"   
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
 os.environ["CUDA_VISIBLE_DEVICES"]="0"
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 from sklearn.metrics import average_precision_score
 from sklearn import metrics
@@ -158,7 +158,6 @@ def setting_dataset(cmpdf, ptndf, label_df, tag, pockn, pair_typeN):
 
 
 
-
 class CNN_model(nn.Module):
     def __init__(self, rn, pns, dropout, pockn):
         super(CNN_model, self).__init__()
@@ -192,7 +191,7 @@ class CNN_model(nn.Module):
         feature_lgd = self.lgd_apm(feature_lgd)
         
         sequence = torch.cat((feature_lgd, feature_ptn), dim=0).view(1, -1, int(self.rn/4)*self.pns)
-        mask = torch.eye(self.pockn, dtype=torch.uint8).view(1, self.pockn, self.pockn)
+        mask = torch.eye(self.pockn, dtype=torch.uint8).view(1, self.pockn, self.pockn).cuda()
         mask[0, sequence.size()[1]:self.pockn, :] = 0
         mask[0, :, sequence.size()[1]:self.pockn] = 0
         mask[0, :, sequence.size()[1] - 1] = 1
@@ -201,8 +200,8 @@ class CNN_model(nn.Module):
         sequence = F.pad(input=sequence, pad=(0, 0, 0, self.pockn - sequence.size()[1]), mode='constant', value=0)
         sequence = sequence.permute(1, 0, 2)
         
-        h_0 = Variable(torch.zeros(2, 1, int(self.rn/4)*self.pns))
-        c_0 = Variable(torch.zeros(2, 1, int(self.rn/4)*self.pns))
+        h_0 = Variable(torch.zeros(2, 1, int(self.rn/4)*self.pns).cuda())
+        c_0 = Variable(torch.zeros(2, 1, int(self.rn/4)*self.pns).cuda())
         
         output, _ = self.bilstm(sequence, (h_0, c_0))
         
