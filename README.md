@@ -10,7 +10,7 @@ A improved molecule representation method that captures both the physicochemical
 ```
 git clone https://github.com/rimeless/APM.git
 cd APM
-conda env create -f env.yml
+conda env create -f env.yaml
 conda activate apm
 ```
 
