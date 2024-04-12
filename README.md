@@ -26,7 +26,7 @@ python script/generate_APM.py --input_type compound --input_file data/compound.s
 -------------
 Train APNet using your data, with compound and PDB ID as dataframe indices.
 ```
-python script/train.py --cmp_apm_file data/apm_compound.csv --pck_apm_path data/apm_protein.csv --labels data/interaction.csv --checkpoint_path model_weight
+python script/train.py --cmp_apm_file data/apm_compound.csv --pck_apm_file data/apm_protein.csv --label_file data/interaction.csv --checkpoint_dir model_weight
 ```
 
 **Predicting with saved_checkpoint**
