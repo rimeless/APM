@@ -7,7 +7,9 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 from sklearn.metrics import average_precision_score
 from sklearn import metrics
-import pickle, itertools, math
+import pickle, itertools, math, copy
+import numpy as np
+
 
 from operator import itemgetter, add
 from sklearn.metrics import confusion_matrix
@@ -25,8 +27,6 @@ from torch.autograd import Variable
 from sklearn.preprocessing import StandardScaler
 std_scaler = StandardScaler()
 
-import random
-random.seed(7)
 
 
 
@@ -79,7 +79,7 @@ class MultiHeadAttention(nn.Module):
 
 
 
-def fwd_pass(X, y, model_t, train=False):
+def fwd_pass(X, y, model_t, optimizer, train=False):
     if train:
         optimizer.zero_grad()
     out = []
@@ -142,17 +142,18 @@ def test_func(model_f, y_label, X_test_f):
 
 
 def setting_dataset(cmpdf, ptndf, label_df, tag, pockn, pair_typeN):
-    subsets = df[df.tag==tag]
-    apm = np.array(cmpdf.loc[subsets.cid,:])        
+    subsets = label_df[label_df.iloc[:,3]==tag]
+    subsets = subsets[subsets.iloc[:,0].isin(cmpdf.index)&subsets.iloc[:,1].isin(ptndf.index)]
+    apm = np.array(cmpdf.loc[subsets.iloc[:,0],:])        
     apm = torch.tensor(apm, dtype = torch.float).view(len(subsets),1,pair_typeN,10)
     ppock = []
-    for pds in list(subsets.pdb_id):
+    for pds in list(subsets.iloc[:,1]):
         pcks = ptndf.loc[pds,:]
         if len(pcks)>(pockn-1):
             pcks = pcks.sample(frac = 1, random_state = 7)[0:(pockn-1)]
         ppock.append(torch.tensor(np.array(pcks).reshape([-1,pair_typeN,10]), dtype = torch.float))
     X = [[apm[i], ppock[i]] for i in range(len(apm))]
-    y = list(subsets.label)
+    y = list(subsets.iloc[:,2])
     return X, y
 
 

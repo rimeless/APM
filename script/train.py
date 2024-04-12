@@ -15,21 +15,24 @@ if __name__ == '__main__':
                         default='result')
     args = parser.parse_args()
 
+# cmp_apm = pd.read_csv('/spstorage/USERS/gina/test/data/apm_compound.csv',index_col=0)
+# pck_apm = pd.read_csv('/spstorage/USERS/gina/test/data/apm_protein.csv',index_col=0)
+# dtis = pd.read_csv('/spstorage/USERS/gina/test/data/interaction.csv', header=None)
 
 
-dtis = pd.read_csv(args.label_file)
-cmp_apm = pd.read_csv(cmp_apm_file)
-pck_apm = pd.read_csv(pck_apm_file)
+dtis = pd.read_csv(args.label_file, header=None)
+cmp_apm = pd.read_csv(args.cmp_apm_file, index_col =0)
+pck_apm = pd.read_csv(args.pck_apm_file, index_col =0)
 
-X_train,y_train = setting_dataset(cmp_apm, pck_apm, 'train',pockn, 55)
-X_dev,y_dev = setting_dataset(cmp_apm, pck_apm, 'dev',pockn, 55)
-X_test,y_test = setting_dataset(cmp_apm, pck_apm, 'test',pockn, 55)
+X_train,y_train = setting_dataset(cmp_apm, pck_apm, dtis, 'train',30, 55)
+X_dev,y_dev = setting_dataset(cmp_apm, pck_apm, dtis, 'dev',30, 55)
+X_test,y_test = setting_dataset(cmp_apm, pck_apm, dtis, 'test',30, 55)
 
 
 torch.manual_seed(7)
 model = CNN_model(55, 7, 0.3, 30)
 model.to(device)
-model.load_state_dict(torch.load(args.checkpoint_file, map_location=torch.device('cpu')))
+
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 criterion = torch.nn.BCELoss()
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.9)
@@ -37,7 +40,7 @@ model.zero_grad()
 
 
 
-with open(f'{arg.log_dir}/log', 'a') as f:
+with open(f'{args.log_dir}/log', 'a') as f:
     best_model_wts = copy.deepcopy(model.state_dict())
     best_val_rocauc = 0.5
     early = 0
@@ -54,7 +57,7 @@ with open(f'{arg.log_dir}/log', 'a') as f:
                 except:
                     gc.collect()
                     continue
-                acc, loss, _ = fwd_pass(batch_X, batch_y, model, train=True)
+                acc, loss, _ = fwd_pass(batch_X, batch_y, model, optimizer, train=True)
                 losses.append(loss.item())
                 accs.append(acc)
                 acc_mean = np.array(accs).mean()

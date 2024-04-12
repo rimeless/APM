@@ -168,6 +168,7 @@ def gen_FP(mm):
 
 def gen_pockets(pdb_file, pk, rns, cnrs, inv, fn, pockn):
     pockets = pk.find_pockets(pdb_file)
+    pnm = os.path.splitext(os.path.basename(pdb_file))[0]
     # pocket df
     subcents = []
     pckts = []
@@ -233,6 +234,7 @@ def gen_pockets(pdb_file, pk, rns, cnrs, inv, fn, pockn):
             nsubdf = subpock
         nsubss.append(nsubdf)
     pcks = pd.concat(nsubss)
+    pcks.index = pnm
     return pcks
 
 
