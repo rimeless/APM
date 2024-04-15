@@ -79,7 +79,7 @@ class MultiHeadAttention(nn.Module):
 
 
 
-def fwd_pass(X, y, model_t, optimizer, train=False):
+def fwd_pass(X, y, model_t, optimizer, criterion, train=False):
     if train:
         optimizer.zero_grad()
     out = []

@@ -57,7 +57,7 @@ with open(f'{args.log_dir}/log', 'a') as f:
                 except:
                     gc.collect()
                     continue
-                acc, loss, _ = fwd_pass(batch_X, batch_y, model, optimizer, train=True)
+                acc, loss, _ = fwd_pass(batch_X, batch_y, model, optimizer, criterion, train=True)
                 losses.append(loss.item())
                 accs.append(acc)
                 acc_mean = np.array(accs).mean()
@@ -77,5 +77,7 @@ with open(f'{args.log_dir}/log', 'a') as f:
             best_val_rocauc = float(val_rocauc)
             best_model_wts = copy.deepcopy(model.state_dict())
             early=0
+        model.load_state_dict(best_model_wts)
+        torch.save(model.state_dict(), f"{arg.checkpoint_dir}/train_model.pth")
 
 
