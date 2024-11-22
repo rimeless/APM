@@ -13,34 +13,26 @@ from sklearn import metrics
 from scipy import stats
 import deepchem
 
+# Initializing a pocket finder from DeepChem
 pk = deepchem.dock.ConvexHullPocketFinder()
 
-
-
+# Load a chemical feature factory definition
 factory = ChemicalFeatures.BuildFeatureFactory('data/BaseFeatures_h.fdef')
 fn = factory.GetFeatureFamilies() 
 
-
+# Parameters for molecular feature calculations
 rdkit_morgan_radius=2
 radius =2
 gap = 0.6
 inv = 1.2
 
-##################
-
-def dst(pr):
-    xd = abs(pr[0][0]-pr[1][0])
-    yd = abs(pr[0][1]-pr[1][1])
-    zd = abs(pr[0][2]-pr[1][2])
-    dst = math.sqrt(xd**2+yd**2+zd**2)
-    return dst
-
-
+# Filter duplicated donor and acceptor features from a molecule's feature set
 def filter_feats_both(feat):
   dns = [f.GetAtomIds() for f in feat if (f.GetFamily()=='Donor')]
   feat = [f for f in feat if not (f.GetFamily()=='Acceptor')&(f.GetAtomIds() in dns)]
   return feat
 
+# Feature filtering based on various chemical families
 def filter_feats_renew(feat):
   arh = [f.GetAtomIds() for f in feat if (f.GetFamily()=='Aromatic')]
   arh = list(itertools.chain(*arh))
@@ -52,7 +44,7 @@ def filter_feats_renew(feat):
   feat = [f for f in feat if not (f.GetFamily()=='LumpedHydrophobe')&(any([ff in arh for ff in f.GetAtomIds()]))]
   return feat
 
-
+# Calculate atom-pair features for a molecule
 sym2feat = {'C':7,'O':10,'N':10, 'S':10}
 def feature_AH(row, feats, atms, mps, idx, col, inv, das, fn):
   # basic charac. extra atom to atom charac. 7 C hydrophobic / 10 O  N  S hydrophilic / 11 etc
@@ -107,7 +99,7 @@ def feature_AH(row, feats, atms, mps, idx, col, inv, das, fn):
             lt[tidx*len(col)+cv-1] += b1
   return lt
 
-
+# Generate a DataFrame of features for a set of molecules
 def gen_featdf(mm, use_feats, mn):
   feats = [factory.GetFeaturesForMol(m) for m in mm]
   feats = [[f for f in feat if (f.GetFamily() in use_feats)] for feat in feats]
@@ -126,6 +118,7 @@ def gen_featdf(mm, use_feats, mn):
   podfs = pd.concat(podfs)
   return podfs
 
+# Generate a fragment DataFrame with matching statistics
 def gen_frag_df(frag_df, mm, mn):
     frag_mols = [Chem.MolFromSmiles(fg) for fg in list(frag_df.smiles)]
     frgs = pd.DataFrame([[1 if m.HasSubstructMatch(fg) else 0 for fg in frag_mols] for m in mm])
@@ -139,6 +132,7 @@ def gen_frag_df(frag_df, mm, mn):
     sub_bb = sub_bb.loc[:,['Fragment','from','smiles','name','class']]
     return sub_bb
 
+# Generate atom-pair features for a set of molecules
 def gen_AP(mm, use_feats, rns, cnrs, inv, fn):
   fns = [i for i, f in enumerate(fn) if f in use_feats]
   mn =  [m.GetProp('_Name') for m in mm]
@@ -158,6 +152,14 @@ def gen_AP(mm, use_feats, rns, cnrs, inv, fn):
   return vdf
 
 
+def dst(pr):
+    xd = abs(pr[0][0]-pr[1][0])
+    yd = abs(pr[0][1]-pr[1][1])
+    zd = abs(pr[0][2]-pr[1][2])
+    dst = math.sqrt(xd**2+yd**2+zd**2)
+    return dst
+
+
 def gen_FP(mm):
   smiles_list = [Chem.MolToSmiles(m) for m in mm]
   mn =  [m.GetProp('_Name') for m in mm]
@@ -166,6 +168,7 @@ def gen_FP(mm):
   fps.index = mn
   return fps, smiles_list
 
+# Generate pocket features from a PDB file
 def gen_pockets(pdb_file, pk, rns, cnrs, inv, fn, pockn):
     pockets = pk.find_pockets(pdb_file)
     pnm = os.path.splitext(os.path.basename(pdb_file))[0]
@@ -237,8 +240,7 @@ def gen_pockets(pdb_file, pk, rns, cnrs, inv, fn, pockn):
     pcks.index = pnm
     return pcks
 
-
-
+# Main function to generate atom-pair matrix (APM) for compounds or pockets
 def generate_APM(input_type, input_path, dstbin, use_feats, pockn):
   rto = 20/(1.2**dstbin)
   cnrs = [rto*(1.2**g) for g in range(dstbin)]
