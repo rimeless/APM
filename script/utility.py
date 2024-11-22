@@ -1,10 +1,4 @@
-
 import torch, sys, os
-os.environ["CUDA_LAUNCH_BLOCKING"]="1"   
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
 from sklearn.metrics import average_precision_score
 from sklearn import metrics
 import pickle, itertools, math, copy
@@ -22,14 +16,71 @@ from torch.optim.lr_scheduler import ExponentialLR
 from sklearn.metrics import balanced_accuracy_score, roc_auc_score, precision_recall_curve, \
     average_precision_score, f1_score, auc, recall_score, precision_score
 
-
 from torch.autograd import Variable
 from sklearn.preprocessing import StandardScaler
 std_scaler = StandardScaler()
 
+# Setting up the device
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"   
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+class CNN_model(nn.Module):
+    def __init__(self, rn, pns, dropout, pockn):
+        super(CNN_model, self).__init__()
+        self.rn = rn  # Input feature size
+        self.pns = pns  # Pooling size
+        self.pockn = pockn  # Number of protein pockets
+        # Define APM processing pipelines for proteins and ligands
+        self.ptn_apm = nn.Sequential(
+            nn.Conv1d(rn, rn // 2, 2, 1),
+            nn.Conv1d(rn // 2, rn // 4, 2, 1),
+            nn.BatchNorm1d(rn // 4),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.AdaptiveMaxPool1d(pns)
+        )
+        self.lgd_apm = nn.Sequential(
+            nn.Conv1d(rn, rn // 2, 2, 1),
+            nn.Conv1d(rn // 2, rn // 4, 2, 1),
+            nn.BatchNorm1d(rn // 4),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.AdaptiveMaxPool1d(pns)
+        )
+        self.bilstm = nn.LSTM(rn // 4 * pns, rn // 4 * pns, bidirectional=True, dropout=dropout)
+        self.fc_in = nn.Linear(rn // 4 * pns * pockn * 2, rn // 4 * pns * pockn)
+        self.fc_out = nn.Linear(rn // 4 * pns * pockn, 1)
+        self.attention = MultiHeadAttention(rn // 4 * pns * 2, rn // 4 * pns * 2, 2)
 
+    def forward(self, g):
+        feature_ptn = self.ptn_apm(g[1])  # Process protein APM
+        feature_lgd = self.lgd_apm(g[0])  # Process ligand APM
+        sequence = torch.cat((feature_lgd, feature_ptn), dim=0).view(1, -1, self.rn // 4 * self.pns)
+
+        mask = torch.eye(self.pockn, dtype=torch.uint8).view(1, self.pockn, self.pockn).cuda()
+        mask[0, sequence.size()[1]:self.pockn, :] = 0
+        mask[0, :, sequence.size()[1]:self.pockn] = 0
+        mask[0, :, sequence.size()[1] - 1] = 1
+        mask[0, sequence.size()[1] - 1, :] = 1
+        mask[0,  sequence.size()[1] - 1,  sequence.size()[1] - 1] = 0
+        sequence = F.pad(input=sequence, pad=(0, 0, 0, self.pockn - sequence.size()[1]), mode='constant', value=0)
+        sequence = sequence.permute(1, 0, 2)
+        
+        h_0 = Variable(torch.zeros(2, 1, int(self.rn/4)*self.pns).cuda())
+        c_0 = Variable(torch.zeros(2, 1, int(self.rn/4)*self.pns).cuda())
+        
+        output, _ = self.bilstm(sequence, (h_0, c_0))
+        
+        output = output.permute(1, 0,  2)
+        out,att = self.attention(output, mask=mask, return_attention=True)  # Apply multi-head attention
+        out = F.relu(self.fc_in(out.view(-1, out.size()[1] * out.size()[2])))  # Fully connected layer
+        out = torch.sigmoid(self.fc_out(out))  # Sigmoid for binary classification
+        return out
+
+
+# Compute scaled dot-product attention
 def scaled_dot_product(q, k, v, mask=None):
     d_k = q.size()[-1]
     attn_logits = torch.matmul(q, k.transpose(-2, -1))
@@ -41,7 +92,7 @@ def scaled_dot_product(q, k, v, mask=None):
     return values, attention
 
 
-
+# Multi-head attention mechanism
 class MultiHeadAttention(nn.Module):
     def __init__(self, input_dim, embed_dim, num_heads):
         super().__init__()
@@ -139,8 +190,6 @@ def test_func(model_f, y_label, X_test_f):
 
 
 
-
-
 def setting_dataset(cmpdf, ptndf, label_df, tag, pockn, pair_typeN):
     subsets = label_df[label_df.iloc[:,3]==tag]
     subsets = subsets[subsets.iloc[:,0].isin(cmpdf.index)&subsets.iloc[:,1].isin(ptndf.index)]
@@ -155,60 +204,3 @@ def setting_dataset(cmpdf, ptndf, label_df, tag, pockn, pair_typeN):
     X = [[apm[i], ppock[i]] for i in range(len(apm))]
     y = list(subsets.iloc[:,2])
     return X, y
-
-
-
-
-class CNN_model(nn.Module):
-    def __init__(self, rn, pns, dropout, pockn):
-        super(CNN_model, self).__init__()
-        self.rn = rn
-        self.pns = pns 
-        self.pockn = pockn
-        self.ptn_apm = nn.Sequential(
-            nn.Conv1d(in_channels = rn, out_channels = int(rn/2), kernel_size = 2, stride = 1, padding = 0, dilation =1, groups= 1, bias = True, padding_mode= 'zeros'),
-            nn.Conv1d(in_channels = int(rn/2), out_channels = int(rn/4), kernel_size = 2, stride = 1, padding = 0, dilation =1, groups= 1, bias = True, padding_mode= 'zeros'),
-            nn.BatchNorm1d(int(rn/4), eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.AdaptiveMaxPool1d(pns)
-        )
-        self.lgd_apm = nn.Sequential(
-            nn.Conv1d(in_channels = rn, out_channels = int(rn/2), kernel_size = 2, stride = 1, padding = 0, dilation =1, groups= 1, bias = True, padding_mode= 'zeros'),
-            nn.Conv1d(in_channels = int(rn/2), out_channels = int(rn/4), kernel_size = 2, stride = 1, padding = 0, dilation =1, groups= 1, bias = True, padding_mode= 'zeros'),
-            nn.BatchNorm1d(int(rn/4), eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-            nn.ReLU(),
-            nn.Dropout(dropout),
-            nn.AdaptiveMaxPool1d(pns)
-        )
-        self.bilstm = nn.LSTM(int(rn/4)*pns, int(rn/4)*pns, num_layers=1, bidirectional=True, dropout=dropout)
-        self.fc_in = nn.Linear(int(rn/4)*pns*pockn*2, int(rn/4)*pns*pockn) #1922
-        self.fc_out = nn.Linear(int(rn/4)*pns*pockn, 1)
-        self.attention = MultiHeadAttention(int(rn/4)*pns*2, int(rn/4)*pns*2, 2)
-    def forward(self, g):
-        feature_ptn = g[1]
-        feature_lgd = g[0]
-        feature_ptn = self.ptn_apm(feature_ptn)
-        feature_lgd = self.lgd_apm(feature_lgd)
-        
-        sequence = torch.cat((feature_lgd, feature_ptn), dim=0).view(1, -1, int(self.rn/4)*self.pns)
-        mask = torch.eye(self.pockn, dtype=torch.uint8).view(1, self.pockn, self.pockn).cuda()
-        mask[0, sequence.size()[1]:self.pockn, :] = 0
-        mask[0, :, sequence.size()[1]:self.pockn] = 0
-        mask[0, :, sequence.size()[1] - 1] = 1
-        mask[0, sequence.size()[1] - 1, :] = 1
-        mask[0,  sequence.size()[1] - 1,  sequence.size()[1] - 1] = 0
-        sequence = F.pad(input=sequence, pad=(0, 0, 0, self.pockn - sequence.size()[1]), mode='constant', value=0)
-        sequence = sequence.permute(1, 0, 2)
-        
-        h_0 = Variable(torch.zeros(2, 1, int(self.rn/4)*self.pns).cuda())
-        c_0 = Variable(torch.zeros(2, 1, int(self.rn/4)*self.pns).cuda())
-        
-        output, _ = self.bilstm(sequence, (h_0, c_0))
-        
-        output = output.permute(1, 0,  2)
-        out,att = self.attention(output, mask=mask, return_attention=True)
-        out = F.relu(self.fc_in(out.view(-1, out.size()[1]*out.size()[2])))
-        out = torch.sigmoid(self.fc_out(out))
-        return out
-
