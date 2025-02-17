@@ -218,26 +218,20 @@ def gen_pockets(pdb_file, pk, rns, cnrs, inv, fn, pockn):
             vts.append(vt)
     pock = pd.DataFrame(vts).drop_duplicates()
     pock = pock[(pock.T.sum()>10) & (pock.T.sum()<100)]
-    nsubss = [] 
-    for pid in list(set(pock.index)):
-        subpock = pock.loc[pid, :]
-        if len(subpock.shape)==1:
-            nsubdf = pd.DataFrame(subpock).T
-        elif len(subpock)>pockn:
-            k_means = KMeans(init="k-means++", n_clusters=pockn, n_init=20)#, n_jobs = 50)
-            k_means.fit(subpock)
-            nsubs = []
-            for i in range(pockn):
-                iidx = [ii for ii, pp in enumerate(k_means.labels_) if pp == i]
-                ssub = subpock.iloc[iidx,:]
-                dsts = [np.linalg.norm(ssub.iloc[a,:].to_numpy()-k_means.cluster_centers_[0]) for a in range(len(ssub))]
-                nsubs.append(ssub.iloc[dsts.index(min(dsts)),:])
-            nsubdf = pd.DataFrame(nsubs)
-        else:
-            nsubdf = subpock
-        nsubss.append(nsubdf)
-    pcks = pd.concat(nsubss)
-    pcks.index = pnm
+    if len(pock.shape)==1:
+        pcks = pd.DataFrame(pock).T
+    elif len(pock)>pockn:
+        k_means = KMeans(init="k-means++", n_clusters=pockn, n_init=20)#, n_jobs = 50)
+        k_means.fit(pock)
+        nsubs = []
+        for i in range(pockn):
+            iidx = [ii for ii, pp in enumerate(k_means.labels_) if pp == i]
+            ssub = pock.iloc[iidx,:]
+            dsts = [np.linalg.norm(ssub.iloc[a,:].to_numpy()-k_means.cluster_centers_[0]) for a in range(len(ssub))]
+            nsubs.append(ssub.iloc[dsts.index(min(dsts)),:])
+        pcks = pd.DataFrame(nsubs)
+    else:
+        pcks = pock
     return pcks
 
 # Main function to generate atom-pair matrix (APM) for compounds or pockets
