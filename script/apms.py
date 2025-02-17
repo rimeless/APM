@@ -13,6 +13,8 @@ from sklearn import metrics
 from scipy import stats
 import deepchem
 
+from sklearn.cluster import KMeans
+
 # Initializing a pocket finder from DeepChem
 pk = deepchem.dock.ConvexHullPocketFinder()
 
